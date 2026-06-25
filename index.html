@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>食品ロス削減プログラム</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: sans-serif; background-color: #f5f5f5; margin: 0; padding: 0; color: #333; }
+  .wrap { max-width: 560px; margin: 0 auto; min-height: 100vh; background: #fff; display: flex; flex-direction: column; }
+  header { background: #388E3C; color: #fff; padding: 14px 16px; text-align: center; }
+  header h1 { margin: 0; font-size: 1.05em; }
+  .progress { display: flex; gap: 4px; padding: 10px 16px; background: #e8f5e9; }
+  .progress .seg { flex: 1; height: 6px; border-radius: 3px; background: #c8e6c9; }
+  .progress .seg.done { background: #388E3C; }
+  main { flex: 1; padding: 16px; }
+  .step { display: none; }
+  .step.active { display: block; }
+  .step h2 { color: #388E3C; font-size: 1.1em; margin-top: 0; }
+  .desc { background: #e3f2fd; border-left: 4px solid #2196F3; padding: 10px 12px; border-radius: 6px; font-size: 0.9em; margin-bottom: 12px; line-height: 1.5; }
+  iframe { width: 100%; border: 1px solid #ddd; border-radius: 6px; }
+  iframe.form-frame { height: 70vh; min-height: 480px; }
+  iframe.game-frame { height: 75vh; min-height: 540px; }
+  video { width: 100%; border-radius: 6px; background: #000; }
+  .btn-large { background: #FF9800; color: #fff; border: none; font-size: 1em; padding: 12px; width: 100%; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 14px; }
+  .btn-large:disabled { background: #ccc; cursor: not-allowed; }
+  .hint { font-size: 0.78em; color: #888; margin-top: 6px; text-align: center; }
+  .done-screen { text-align: center; padding: 40px 10px; }
+  .done-screen .emoji { font-size: 3em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>🍳 食品ロス削減プログラム</h1></header>
+  <div class="progress" id="progress"></div>
+
+  <main>
+    <!-- STEP 1: 事前アンケート -->
+    <div class="step" id="step-1">
+      <h2>① 事前アンケート</h2>
+      <div class="desc">まずアンケートに回答してください。回答が終わったら下の「次へ」ボタンを押してください。</div>
+      <iframe class="form-frame" src="https://docs.google.com/forms/d/e/1FAIpQLSebLtERcr7Y64uGgrqkbgqXx0acERAGsys_n_OBnyOUkv-zkQ/viewform?embedded=true"></iframe>
+      <button class="btn-large" onclick="goTo(2)">次へ（事前ゲームへ）</button>
+    </div>
+
+    <!-- STEP 2: 事前ゲーム -->
+    <div class="step" id="step-2">
+      <h2>② 事前ゲーム</h2>
+      <div class="desc">買い物パズルゲームに挑戦してみましょう！</div>
+      <iframe class="game-frame" src="game2.html"></iframe>
+      <button class="btn-large" onclick="goTo(3)">次へ（動画を見る）</button>
+    </div>
+
+    <!-- STEP 3: 動画（ランダム） -->
+    <div class="step" id="step-3">
+      <h2>③ 動画を見てみよう</h2>
+      <div class="desc">食品ロスについての動画です。最後まで視聴してください。</div>
+      <video id="random-video" controls playsinline></video>
+      <button class="btn-large" id="video-next-btn" onclick="goTo(4)" disabled>視聴後、次へ（事後アンケートへ）</button>
+      <div class="hint">※動画再生後にボタンが押せるようになります</div>
+    </div>
+
+    <!-- STEP 4: 事後アンケート -->
+    <div class="step" id="step-4">
+      <h2>④ 事後アンケート</h2>
+      <div class="desc">動画をご覧になった感想などをアンケートに回答してください。</div>
+      <iframe class="form-frame" src="https://docs.google.com/forms/d/e/1FAIpQLSdrw9WquSIA6B9eEnZKhf1wD5qOyJi6vyWAnwYZVBHn16CWpw/viewform?embedded=true"></iframe>
+      <button class="btn-large" onclick="goTo(5)">次へ（事後ゲームへ）</button>
+    </div>
+
+    <!-- STEP 5: 事後ゲーム -->
+    <div class="step" id="step-5">
+      <h2>⑤ 事後ゲーム</h2>
+      <div class="desc">最後にもう一度、買い物パズルゲームに挑戦してみましょう！</div>
+      <iframe class="game-frame" src="game2.html"></iframe>
+      <button class="btn-large" onclick="finish()">プログラムを終了する</button>
+    </div>
+
+    <!-- DONE -->
+    <div class="step" id="step-done">
+      <div class="done-screen">
+        <div class="emoji">🎉</div>
+        <h2>お疲れさまでした！</h2>
+        <p>すべてのステップが終了しました。<br>ご協力ありがとうございました。</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+var TOTAL_STEPS = 5;
+var currentStep = 1;
+
+// ランダム動画リスト（同フォルダの videos フォルダに、元のファイル名のまま置いてください）
+var videoFiles = [
+  'videos/803916196.289537.mp4',
+  'videos/803970327.144654.mp4',
+  'videos/803981762.384469.mp4',
+  'videos/803981762.421350.mp4'
+];
+
+function renderProgress() {
+  var bar = document.getElementById('progress');
+  bar.innerHTML = '';
+  for (var i = 1; i <= TOTAL_STEPS; i++) {
+    var seg = document.createElement('div');
+    seg.className = 'seg' + (i <= currentStep ? ' done' : '');
+    bar.appendChild(seg);
+  }
+}
+
+function goTo(step) {
+  document.getElementById('step-' + currentStep).classList.remove('active');
+  currentStep = step;
+  document.getElementById('step-' + currentStep).classList.add('active');
+  renderProgress();
+  window.scrollTo(0, 0);
+
+  if (step === 3) {
+    setupVideo();
+  }
+}
+
+function setupVideo() {
+  var video = document.getElementById('random-video');
+  var btn = document.getElementById('video-next-btn');
+  if (!video.dataset.loaded) {
+    var pick = videoFiles[Math.floor(Math.random() * videoFiles.length)];
+    video.src = pick;
+    video.dataset.loaded = 'true';
+    video.addEventListener('ended', function () {
+      btn.disabled = false;
+    });
+  }
+}
+
+function finish() {
+  document.getElementById('step-' + currentStep).classList.remove('active');
+  document.getElementById('step-done').classList.add('active');
+  currentStep = TOTAL_STEPS;
+  renderProgress();
+  window.scrollTo(0, 0);
+}
+
+// 初期表示
+document.getElementById('step-1').classList.add('active');
+renderProgress();
+</script>
+</body>
+</html>

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+   <title>食品ロス削減！ぴったり買い物パズル</title>
+   <style>
+       body { font-family: sans-serif; background-color: #f5f5f5; margin: 0; padding: 10px; color: #333; }
+       .container { max-width: 500px; margin: 0 auto; background: #fff; padding: 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+       h1 { text-align: center; color: #388E3C; font-size: 1.2em; margin: 5px 0; }
+       h3 { font-size: 1em; margin: 10px 0 5px 0; }
+       .status-bar { display: flex; justify-content: space-between; background: #e8f5e9; padding: 10px; border-radius: 6px; margin-bottom: 10px; font-weight: bold; font-size: 0.9em; }
+       .story-box { background: #e3f2fd; padding: 8px 10px; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #2196F3; font-size: 0.85em; font-weight: bold; line-height: 1.4; }
+       .memo-box { background: #eee8cc; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #FF9800; font-size: 0.85em; }
+       .memo-table { width: 100%; border-collapse: collapse; }
+       .memo-table td { padding: 4px 0; font-weight: bold; }
+       .market-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px; }
+       .item-card { border: 1px solid #ddd; border-radius: 6px; padding: 8px; text-align: center; background: #fff; display: flex; flex-direction: column; justify-content: space-between; }
+       .item-card h4 { margin: 0 0 5px 0; font-size: 0.85em; }
+       .badge { background: #f44336; color: white; padding: 1px 4px; font-size: 0.65em; border-radius: 3px; font-weight: bold; display: inline-block; margin: 0 auto 4px auto; }
+       .amount-info { font-size: 0.85em; font-weight: bold; color: #2196F3; }
+       .price { font-size: 0.95em; font-weight: bold; color: #e91e63; margin: 2px 0; }
+       .expiry { color: #666; font-size: 0.75em; margin-bottom: 6px; }
+       .btn-group { display: flex; gap: 4px; margin-top: auto; }
+       .btn { background: #4CAF50; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.8em; flex: 2; }
+       .btn:disabled { background: #ccc; cursor: not-allowed; }
+       .btn-sub { background: #cfd8dc; color: #37474f; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.75em; flex: 1; }
+       .btn-sub:disabled { opacity: 0.3; cursor: not-allowed; }
+       .btn-large { background: #FF9800; color: white; border: none; font-size: 1em; padding: 10px; width: 100%; border-radius: 6px; cursor: pointer; font-weight: bold; }
+       .result-screen { display: none; text-align: center; }
+       .score-board { margin: 10px auto; text-align: left; background: #f9f9f9; padding: 10px; border-radius: 6px; border: 1px solid #ddd; font-size: 0.85em; }
+       .score-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+       .score-total { font-size: 1.1em; font-weight: bold; border-top: 1px solid #333; padding-top: 5px; color: #388E3C; margin-top: 8px; }
+   </style>
+</head>
+<body>
+
+<div class="container" id="game-container">
+   <h1>🛒 食品ロス削減！ぴったり買い物パズル</h1>
+   <div class="status-bar">
+       <div>【お買い物】</div>
+       <div>所持金: <span id="money-display">2000</span>円</div>
+   </div>
+
+   <div class="story-box">
+       明日友達と餃子パーティーをします。<br>
+       合わせて100個作りたいです！<br>
+       食品ロスと消費期限を考えてお買い物しよう！
+   </div>
+
+   <div class="memo-box">
+       <strong>📝 買い物メモ（目標の分量を集めよう！）</strong>
+       <table class="memo-table">
+           <tr id="memo-row-0"><td>豚ひき肉</td><td align="right">必要数: 700g</td></tr>
+           <tr id="memo-row-1"><td>キャベツ</td><td align="right">必要数: 600g</td></tr>
+           <tr id="memo-row-2"><td>ニラ</td><td align="right">必要数: 2束</td></tr>
+           <tr id="memo-row-3"><td>餃子の皮</td><td align="right">必要数: 100枚</td></tr>
+       </table>
+   </div>
+
+   <h3>売り場</h3>
+   <div class="market-grid" id="market-grid"></div>
+
+   <div style="text-align:center; margin-top:15px;">
+       <button class="btn-large" onclick="checkout()">レジへ進む（答え合わせ）</button>
+   </div>
+</div>
+
+<div class="container result-screen" id="result-container">
+   <h1>🍳 クッキング＆答え合わせ</h1>
+   <div id="result-comment" style="font-weight:bold; margin:10px 0; font-size:1em;"></div>
+   <div class="score-board" id="score-board"></div>
+   <button class="btn-large" onclick="location.reload()">もう一度遊ぶ</button>
+</div>
+
+<script>
+var money = 2000;
+
+// 餃子100個用の商品データ（大容量パックを追加！）
+var products = [
+   { name: '豚ひき肉パック', type: 0, amount: 200, unit: 'g', price: 260, expiry: 3, isSale: false },
+   { name: '国産豚ひき肉（大）', type: 0, amount: 450, unit: 'g', price: 550, expiry: 3, isSale: false },
+   { name: '【見切り】メガ盛ひき肉', type: 0, amount: 700, unit: 'g', price: 690, expiry: 1, isSale: true },
+
+   { name: 'カットキャベツ', type: 1, amount: 150, unit: 'g', price: 80, expiry: 4, isSale: false },
+   { name: '【見切り】キャベツ半玉', type: 1, amount: 300, unit: 'g', price: 90, expiry: 1, isSale: true },
+   { name: 'キャベツ 1玉丸ごと', type: 1, amount: 600, unit: 'g', price: 180, expiry: 5, isSale: false },
+
+   { name: '高知県産 ニラ', type: 2, amount: 1, unit: '束', price: 100, expiry: 4, isSale: false },
+   { name: '【見切り】お買得ニラ', type: 2, amount: 1, unit: '束', price: 50, expiry: 1, isSale: true },
+
+   { name: '餃子の皮（25枚入）', type: 3, amount: 25, unit: '枚', price: 120, expiry: 7, isSale: false },
+   { name: '餃子の皮（40枚お徳用）', type: 3, amount: 40, unit: '枚', price: 180, expiry: 7, isSale: false },
+   { name: '【見切り】餃子の皮50枚', type: 3, amount: 50, unit: '枚', price: 150, expiry: 1, isSale: true }
+];
+
+var targetAmount = [700, 600, 2, 100];
+var cartCounts = [0,0,0,0,0,0,0,0,0,0,0];
+
+function initMarket() {
+   var grid = document.getElementById('market-grid');
+   grid.innerHTML = '';
+
+   for (var i = 0; i < products.length; i++) {
+       var p = products[i];
+       var card = document.createElement('div');
+       card.className = 'item-card';
+
+       var badgeHtml = p.isSale ? '<span class="badge">割引</span>' : '';
+
+       card.innerHTML = badgeHtml +
+           '<h4>' + p.name + '</h4>' +
+           '<div class="amount-info">' + p.amount + p.unit + '</div>' +
+           '<div class="price">' + p.price + '円</div>' +
+           '<div class="expiry">あと' + p.expiry + '日</div>' +
+           '<div class="btn-group">' +
+           '<button class="btn" id="buy-' + i + '" onclick="buyItem(' + i + ')">買う</button>' +
+           '<button class="btn-sub" id="back-' + i + '" onclick="backItem(' + i + ')">戻す</button>' +
+           '</div>';
+
+       grid.appendChild(card);
+   }
+   updateUI();
+}
+
+function buyItem(index) {
+   var p = products[index];
+   if (money >= p.price) {
+       money -= p.price;
+       cartCounts[index]++;
+       updateUI();
+   }
+}
+
+function backItem(index) {
+   var p = products[index];
+   if (cartCounts[index] > 0) {
+       money += p.price;
+       cartCounts[index]--;
+       updateUI();
+   }
+}
+
+function updateUI() {
+   document.getElementById('money-display').innerText = money;
+   var currentTotals = [0, 0, 0, 0];
+
+   for (var i = 0; i < products.length; i++) {
+       var count = cartCounts[i];
+       var p = products[i];
+       currentTotals[p.type] += p.amount * count;
+
+       var buyBtn = document.getElementById('buy-' + i);
+       if (money < p.price) {
+           buyBtn.disabled = true;
+           buyBtn.innerText = '×';
+       } else {
+           buyBtn.disabled = false;
+           buyBtn.innerText = '買う';
+       }
+
+       var backBtn = document.getElementById('back-' + i);
+       if (count > 0) {
+           backBtn.disabled = false;
+           backBtn.innerText = '戻す(' + count + ')';
+       } else {
+           backBtn.disabled = true;
+           backBtn.innerText = '戻す';
+       }
+   }
+
+   for (var t = 0; t < 4; t++) {
+       var row = document.getElementById('memo-row-' + t);
+       if (currentTotals[t] === targetAmount[t]) {
+           row.style.color = '#2E7D32';
+           row.style.backgroundColor = '#e8f5e9';
+       } else {
+           row.style.color = '#333';
+           row.style.backgroundColor = 'transparent';
+       }
+   }
+}
+
+function checkout() {
+   document.getElementById('game-container').style.display = 'none';
+   document.getElementById('result-container').style.display = 'block';
+
+   var currentTotals = [0, 0, 0, 0];
+   var saleCount = 0;
+   for (var i = 0; i < products.length; i++) {
+       currentTotals[products[i].type] += products[i].amount * cartCounts[i];
+       if (products[i].isSale) { saleCount += cartCounts[i]; }
+   }
+
+   var score = 0;
+   var cleared = true;
+   var html = '';
+   var types = ['豚ひき肉', 'キャベツ', 'ニラ', '餃子の皮'];
+   var units = ['g', 'g', '束', '枚'];
+
+   for (var t = 0; t < 4; t++) {
+       html += '<div style="text-align:left; margin-bottom:10px;"><b>【' + types[t] + '】</b> 目標: ' + targetAmount[t] + units[t] + ' / あなた: ' + currentTotals[t] + units[t] + '<br>';
+       if (currentTotals[t] === targetAmount[t]) {
+           score += 150;
+           html += '🟢 ぴったり！ (+150点)<br>';
+       } else if (currentTotals[t] > targetAmount[t]) {
+           var diff = currentTotals[t] - targetAmount[t];
+           var penalty = (t === 0 || t === 1) ? Math.round(diff * 1) : Math.round(diff * 50);
+           score -= penalty;
+           html += '🔴 余りロス: -' + penalty + '点<br>';
+       } else {
+           cleared = false;
+           score -= 200;
+           html += '❌ 不足ペナルティ: -200点<br>';
+       }
+       html += '</div>';
+   }
+
+   score += money;
+   html += '<div class="score-row"><span>💰 残金ボーナス</span><span>+' + money + '点</span></div>';
+
+   // 「明日」パーティーをするので、消費期限「あと1日（今日まで）」の見切り品を買うと、明日には期限切れでロスになるトラップ！
+   if (saleCount > 0) {
+       var penalty = saleCount * 200;
+       score -= penalty;
+       html += '<div class="score-row" style="color:red;"><span>🗑️ パーティー当日に期限切れロス！</span><span>-' + penalty + '点</span></div>';
+   } else {
+       score += 300;
+       html += '<div class="score-row" style="color:green;"><span>✨ 期限の計画性バツグンボーナス！</span><span>+300点</span></div>';
+   }
+
+   html += '<div class="score-row score-total"><span>総合スコア</span><span>' + score + '点</span></div>';
+   document.getElementById('score-board').innerHTML = html;
+
+   var cmnt = '😊 明日の餃子パーティーは大成功間違いなし！100個の餃子がバッチリ作れます！';
+   if (!cleared) { cmnt = '😢 材料が足りなくて、楽しみにしていた100個の餃子が作れませんでした…'; }
+   else if (score >= 1500) { cmnt = '👑 素晴らしい！消費期限を完璧に見極めた、パーティー買い出しのプロです！'; }
+   document.getElementById('result-comment').innerText = cmnt;
+}
+
+initMarket()
+</script>
+</body>
+</html>
