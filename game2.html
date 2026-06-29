@@ -74,6 +74,20 @@
 </div>
 
 <script>
+/* ============================================================
+   ★ ここを書き換えてください ★
+   GAS_URL : index.html と同じ、Apps ScriptのウェブアプリURL
+============================================================ */
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbwhJedCNcuFL-JDlfJKqjUDp3eR-5QGudp-zPc9Jwf9AXjBlFFI-RB2wCjLvpRXwec/exec';
+/* ============================================================ */
+
+function getUrlParam(name) {
+   var params = new URLSearchParams(window.location.search);
+   return params.get(name);
+}
+var participantId = getUrlParam('id') || 'unknown';
+var gameStep = getUrlParam('step') || 'unknown';
+
 var money = 2000;
 
 // 餃子100個用の商品データ（大容量パックを追加！）
@@ -236,6 +250,29 @@ function checkout() {
    if (!cleared) { cmnt = '😢 材料が足りなくて、楽しみにしていた100個の餃子が作れませんでした…'; }
    else if (score >= 1500) { cmnt = '👑 素晴らしい！消費期限を完璧に見極めた、パーティー買い出しのプロです！'; }
    document.getElementById('result-comment').innerText = cmnt;
+
+   sendResultToSheet(score, money, currentTotals, saleCount, cleared);
+}
+
+function sendResultToSheet(score, money, totals, saleCount, cleared) {
+   fetch(GAS_URL, {
+       method: 'POST',
+       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+       body: JSON.stringify({
+           action: 'logGame',
+           id: participantId,
+           step: gameStep,
+           score: score,
+           detail: {
+               money: money,
+               totals: totals,
+               saleCount: saleCount,
+               cleared: cleared
+           }
+       })
+   }).catch(function (err) {
+       console.log('結果の送信に失敗しました（通信エラー）', err);
+   });
 }
 
 initMarket()
