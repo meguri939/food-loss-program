@@ -56,7 +56,8 @@
       <h2>① 事前アンケート</h2>
       <div class="desc">まずアンケートに回答してください。回答が終わったら下の「次へ」ボタンを押してください。</div>
       <iframe class="form-frame" id="pre-survey-frame" src=""></iframe>
-      <button class="btn-large" onclick="goTo(2)">次へ（事前ゲームへ）</button>
+      <button class="btn-large" id="pre-survey-next-btn" onclick="goTo(2)" disabled>次へ（事前ゲームへ）</button>
+      <div class="hint">※アンケートの送信が確認できると次へ進めます</div>
     </div>
 
     <!-- STEP 2: 事前ゲーム -->
@@ -64,7 +65,8 @@
       <h2>② 事前ゲーム</h2>
       <div class="desc">買い物パズルゲームに挑戦してみましょう！</div>
       <iframe class="game-frame" id="pre-game-frame" src=""></iframe>
-      <button class="btn-large" onclick="goTo(3)">次へ（動画を見る）</button>
+      <button class="btn-large" id="pre-game-next-btn" onclick="goTo(3)" disabled>次へ（動画を見る）</button>
+      <div class="hint">※ゲームを最後まで終えると次へ進めます</div>
     </div>
 
     <!-- STEP 3: 動画（均等割り当て） -->
@@ -82,16 +84,18 @@
       <h2>④ 事後アンケート</h2>
       <div class="desc">動画をご覧になった感想などをアンケートに回答してください。</div>
       <div class="video-reminder" id="video-reminder" style="display:none;"></div>
-      <iframe class="form-frame" id="post-survey-frame" src=""></iframe>
-      <button class="btn-large" onclick="goTo(5)">次へ（事後ゲームへ）</button>
+     <iframe class="form-frame" id="post-survey-frame" src=""></iframe>
+      <button class="btn-large" id="post-survey-next-btn" onclick="goTo(5)" disabled>次へ（事後ゲームへ）</button>
+      <div class="hint">※アンケートの送信が確認できると次へ進めます</div>
     </div>
 
     <!-- STEP 5: 事後ゲーム -->
     <div class="step" id="step-5">
       <h2>⑤ 事後ゲーム</h2>
       <div class="desc">最後にもう一度、買い物パズルゲームに挑戦してみましょう！</div>
-      <iframe class="game-frame" id="post-game-frame" src=""></iframe>
-      <button class="btn-large" onclick="finish()">プログラムを終了する</button>
+     <iframe class="game-frame" id="post-game-frame" src=""></iframe>
+      <button class="btn-large" id="post-game-finish-btn" onclick="finish()" disabled>プログラムを終了する</button>
+      <div class="hint">※ゲームを最後まで終えると終了できます</div>
     </div>
 
     <!-- DONE -->
