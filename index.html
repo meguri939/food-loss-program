@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>食品ロス削減プログラム</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: sans-serif; background-color: #f5f5f5; margin: 0; padding: 0; color: #333; }
+  .wrap { max-width: 560px; margin: 0 auto; min-height: 100vh; background: #fff; display: flex; flex-direction: column; }
+  header { background: #388E3C; color: #fff; padding: 14px 16px; text-align: center; }
+  header h1 { margin: 0; font-size: 1.05em; }
+  .progress { display: flex; gap: 4px; padding: 10px 16px; background: #e8f5e9; }
+  .progress .seg { flex: 1; height: 6px; border-radius: 3px; background: #c8e6c9; }
+  .progress .seg.done { background: #388E3C; }
+  main { flex: 1; padding: 16px; }
+  .step { display: none; }
+  .step.active { display: block; }
+  .step h2 { color: #388E3C; font-size: 1.1em; margin-top: 0; }
+  .desc { background: #e3f2fd; border-left: 4px solid #2196F3; padding: 10px 12px; border-radius: 6px; font-size: 0.9em; margin-bottom: 12px; line-height: 1.5; }
+  iframe { width: 100%; border: 1px solid #ddd; border-radius: 6px; }
+  iframe.form-frame { height: 70vh; min-height: 480px; }
+  iframe.game-frame { height: 75vh; min-height: 540px; }
+  video { width: 100%; border-radius: 6px; background: #000; }
+  .btn-large { background: #FF9800; color: #fff; border: none; font-size: 1em; padding: 12px; width: 100%; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 14px; }
+  .btn-large:disabled { background: #ccc; cursor: not-allowed; }
+  .hint { font-size: 0.78em; color: #888; margin-top: 6px; text-align: center; }
+  .done-screen { text-align: center; padding: 40px 10px; }
+  .done-screen .emoji { font-size: 3em; }
+  .video-badge { background: #FF9800; color: #fff; display: inline-block; padding: 4px 12px; border-radius: 4px; font-weight: bold; margin-bottom: 10px; font-size: 0.9em; }
+  .video-reminder { background: #fff3e0; border-left: 4px solid #FF9800; padding: 8px 12px; border-radius: 6px; font-size: 0.85em; font-weight: bold; margin-bottom: 12px; line-height: 1.5; }
+  .intro-box { background: #e8f5e9; border-left: 4px solid #388E3C; padding: 14px; border-radius: 6px; font-size: 0.92em; line-height: 1.7; margin-bottom: 10px; }
+  .confirm-check { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 0.92em; background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px; padding: 10px 12px; cursor: pointer; }
+  .confirm-check input { width: 18px; height: 18px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>🍳 食品ロス削減プログラム</h1></header>
+  <div class="progress" id="progress"></div>
+
+  <main>
+    <!-- STEP 0: あいさつ -->
+    <div class="step active" id="step-0">
+      <h2>ご協力ありがとうございます🌱</h2>
+      <div class="intro-box">
+        この度は、食品ロス削減プログラムにご協力いただき、誠にありがとうございます。<br><br>
+        これから、<br>
+        ①事前アンケート → ②事前ゲーム → ③動画視聴 → ④事後アンケート → ⑤事後ゲーム<br>
+        の順に進んでいただきます（所要時間はおおよそ15〜20分です）。<br><br>
+        一度始めていただいたら、できるだけ途中で中断せず、最後まで一気に進めていただけますと幸いです。中断すると回答の記録がうまくつながらない場合があります。
+      </div>
+      <button class="btn-large" onclick="startProgram()">同意して始める</button>
+    </div>
+
+    <!-- STEP 1: 事前アンケート -->
+    <div class="step" id="step-1">
+      <h2>① 事前アンケート</h2>
+      <div class="desc">まずアンケートに回答してください。回答が終わったら下の「次へ」ボタンを押してください。</div>
+      <iframe class="form-frame" id="pre-survey-frame" src=""></iframe>
+      <label class="confirm-check">
+        <input type="checkbox" id="pre-survey-confirm-check" onchange="onSurveyConfirmChange('pre-survey-next-btn', this)">
+        アンケートに回答し、送信しました
+      </label>
+      <button class="btn-large" id="pre-survey-next-btn" onclick="goTo(2)" disabled>次へ（事前ゲームへ）</button>
+      <div class="hint">※アンケート送信後、上のチェックを入れると次へ進めます</div>
+    </div>
+
+    <!-- STEP 2: 事前ゲーム -->
+    <div class="step" id="step-2">
+      <h2>② 事前ゲーム</h2>
+      <div class="desc">買い物パズルゲームに挑戦してみましょう！</div>
+      <iframe class="game-frame" id="pre-game-frame" src=""></iframe>
+      <button class="btn-large" id="pre-game-next-btn" onclick="goTo(3)" disabled>次へ（動画を見る）</button>
+      <div class="hint">※ゲームを最後まで終えると次へ進めます</div>
+    </div>
+
+    <!-- STEP 3: 動画（均等割り当て） -->
+    <div class="step" id="step-3">
+      <h2>③ 動画を見てみよう</h2>
+      <div class="desc">食品ロスについての動画です。最後まで視聴してください。</div>
+      <div class="video-badge" id="video-badge" style="display:none;"></div>
+      <video id="random-video" controls playsinline></video>
+      <button class="btn-large" id="video-next-btn" onclick="goTo(4)" disabled>視聴後、次へ（事後アンケートへ）</button>
+      <div class="hint">※動画再生後にボタンが押せるようになります</div>
+    </div>
+
+    <!-- STEP 4: 事後アンケート -->
+    <div class="step" id="step-4">
+      <h2>④ 事後アンケート</h2>
+      <div class="desc">動画をご覧になった感想などをアンケートに回答してください。</div>
+      <div class="video-reminder" id="video-reminder" style="display:none;"></div>
+      <iframe class="form-frame" id="post-survey-frame" src=""></iframe>
+      <label class="confirm-check">
+        <input type="checkbox" id="post-survey-confirm-check" onchange="onSurveyConfirmChange('post-survey-next-btn', this)">
+        アンケートに回答し、送信しました
+      </label>
+      <button class="btn-large" id="post-survey-next-btn" onclick="goTo(5)" disabled>次へ（事後ゲームへ）</button>
+      <div class="hint">※アンケート送信後、上のチェックを入れると次へ進めます</div>
+    </div>
+
+    <!-- STEP 5: 事後ゲーム -->
+    <div class="step" id="step-5">
+      <h2>⑤ 事後ゲーム</h2>
+      <div class="desc">最後にもう一度、買い物パズルゲームに挑戦してみましょう！</div>
+      <iframe class="game-frame" id="post-game-frame" src=""></iframe>
+      <button class="btn-large" id="post-game-finish-btn" onclick="finish()" disabled>プログラムを終了する</button>
+      <div class="hint">※ゲームを最後まで終えると終了できます</div>
+    </div>
+
+    <!-- DONE -->
+    <div class="step" id="step-done">
+      <div class="done-screen">
+        <div class="emoji">🎉</div>
+        <h2>お疲れさまでした！</h2>
+        <p>すべてのステップが終了しました。<br>ご協力ありがとうございました。</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   ★★★ ここを書き換えてください ★★★
+   1. GAS_URL                : Apps Scriptを「ウェブアプリ」として
+                                デプロイした後に出てくるURL
+   2. PRE_FORM_BASE_URL       : 事前アンケートのフォームURL（embedded=true付き）
+   3. POST_FORM_BASE_URL      : 事後アンケートのフォームURL（embedded=true付き）
+   4. PRE_FORM_ID_ENTRY       : 事前アンケート「回答者ID」質問の entry.番号
+   5. POST_FORM_ID_ENTRY      : 事後アンケート「回答者ID」質問の entry.番号
+   6. POST_FORM_VIDEO_ENTRY   : 事後アンケート「動画番号」質問の entry.番号
+   （entry番号の調べ方はチャットの説明をご覧ください）
+============================================================ */
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbwhJedCNcuFL-JDlfJKqjUDp3eR-5QGudp-zPc9Jwf9AXjBlFFI-RB2wCjLvpRXwec/exec';
+
+var PRE_FORM_BASE_URL  = 'https://docs.google.com/forms/d/e/1FAIpQLSebLtERcr7Y64uGgrqkbgqXx0acERAGsys_n_OBnyOUkv-zkQ/viewform';
+var POST_FORM_BASE_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSdrw9WquSIA6B9eEnZKhf1wD5qOyJi6vyWAnwYZVBHn16CWpw/viewform';
+
+var PRE_FORM_ID_ENTRY       = 'entry.767120293';
+var POST_FORM_ID_ENTRY      = 'entry.508297728';
+var POST_FORM_VIDEO_ENTRY   = 'entry.379833712';
+/* ============================================================ */
+
+var TOTAL_STEPS = 5;
+var currentStep = 0;
+var participantId = '';
+var assignedVideoNum = null;
+var videoLabels = ['①', '②', '③', '④'];
+
+var videoFiles = [
+  'videos/803916196.289537.mp4',
+  'videos/803970327.144654.mp4',
+  'videos/803981762.384469.mp4',
+  'videos/803981762.421350.mp4'
+];
+
+function renderProgress() {
+  var bar = document.getElementById('progress');
+  bar.innerHTML = '';
+  for (var i = 1; i <= TOTAL_STEPS; i++) {
+    var seg = document.createElement('div');
+    seg.className = 'seg' + (i <= currentStep ? ' done' : '');
+    bar.appendChild(seg);
+  }
+}
+
+function generateId() {
+  var t = Date.now().toString(36);
+  var r = Math.random().toString(36).substring(2, 8);
+  return (t + r).toUpperCase();
+}
+
+function buildPrefillUrl(baseUrl, entryId, value) {
+  var sep = baseUrl.indexOf('?') === -1 ? '?' : '&';
+  return baseUrl + sep + 'embedded=true&' + entryId + '=' + encodeURIComponent(value);
+}
+
+function onSurveyConfirmChange(btnId, checkbox) {
+  document.getElementById(btnId).disabled = !checkbox.checked;
+}
+
+window.addEventListener('message', function (e) {
+  if (!e.data || e.data.type !== 'gameCompleted') return;
+  if (e.data.step === 'pre') {
+    var btn1 = document.getElementById('pre-game-next-btn');
+    if (btn1) btn1.disabled = false;
+  } else if (e.data.step === 'post') {
+    var btn2 = document.getElementById('post-game-finish-btn');
+    if (btn2) btn2.disabled = false;
+  }
+});
+
+function startProgram() {
+  participantId = generateId();
+  sessionStorage.setItem('foodloss_participantId', participantId);
+
+  document.getElementById('pre-survey-frame').src =
+    buildPrefillUrl(PRE_FORM_BASE_URL, PRE_FORM_ID_ENTRY, participantId);
+
+  document.getElementById('pre-game-frame').src =
+    'game2.html?id=' + encodeURIComponent(participantId) + '&step=pre';
+  document.getElementById('post-game-frame').src =
+    'game2.html?id=' + encodeURIComponent(participantId) + '&step=post';
+
+  document.getElementById('step-0').classList.remove('active');
+  currentStep = 1;
+  document.getElementById('step-1').classList.add('active');
+  renderProgress();
+  window.scrollTo(0, 0);
+}
+
+function goTo(step) {
+  document.getElementById('step-' + currentStep).classList.remove('active');
+  currentStep = step;
+  document.getElementById('step-' + currentStep).classList.add('active');
+  renderProgress();
+  window.scrollTo(0, 0);
+
+  if (step === 3) {
+    setupVideo();
+  }
+  if (step === 4) {
+    var postUrl = buildPrefillUrl(POST_FORM_BASE_URL, POST_FORM_ID_ENTRY, participantId);
+    if (assignedVideoNum) {
+      var sep = postUrl.indexOf('?') === -1 ? '?' : '&';
+      postUrl += sep + POST_FORM_VIDEO_ENTRY + '=' + encodeURIComponent(videoLabels[assignedVideoNum - 1]);
+    }
+    document.getElementById('post-survey-frame').src = postUrl;
+  }
+}
+
+function setupVideo() {
+  var video = document.getElementById('random-video');
+  var btn = document.getElementById('video-next-btn');
+  if (video.dataset.loaded) return;
+  video.dataset.loaded = 'true';
+
+  fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'assignVideo', id: participantId })
+  })
+    .then(function (res) { return res.json(); })
+    .then(function (data) {
+      applyVideoAssignment(data.video);
+    })
+    .catch(function () {
+      // 通信に失敗した場合は、念のためランダムに割り当てて止まらないようにする
+      applyVideoAssignment(Math.floor(Math.random() * 4) + 1);
+    });
+}
+
+function applyVideoAssignment(videoNum) {
+  assignedVideoNum = videoNum;
+  var video = document.getElementById('random-video');
+  video.src = videoFiles[videoNum - 1];
+  video.setAttribute('controlsList', 'nodownload');
+
+  var badge = document.getElementById('video-badge');
+  badge.innerText = videoLabels[videoNum - 1] + 'の動画';
+  badge.style.display = 'inline-block';
+
+  var reminder = document.getElementById('video-reminder');
+  reminder.innerText = 'あなたが視聴したのは ' + videoLabels[videoNum - 1] + ' の動画でした。下のアンケートの「動画番号」は自動で入力されていますので、念のためご確認ください。';
+  reminder.style.display = 'block';
+
+  var btn = document.getElementById('video-next-btn');
+
+  // 再生バーを使って先の方まで飛ぶ（早送り）のを防ぐ。
+  // 実際に再生して到達した一番先の時間（maxPlayedTime）より先には進めないようにする。
+  var maxPlayedTime = 0;
+  video.addEventListener('timeupdate', function () {
+    if (!video.seeking && video.currentTime > maxPlayedTime) {
+      maxPlayedTime = video.currentTime;
+    }
+  });
+  video.addEventListener('seeking', function () {
+    if (video.currentTime > maxPlayedTime + 0.5) {
+      video.currentTime = maxPlayedTime;
+    }
+  });
+
+  video.addEventListener('ended', function () {
+    btn.disabled = false;
+  });
+}
+
+function finish() {
+  document.getElementById('step-' + currentStep).classList.remove('active');
+  document.getElementById('step-done').classList.add('active');
+  currentStep = TOTAL_STEPS;
+  renderProgress();
+  window.scrollTo(0, 0);
+  window.removeEventListener('beforeunload', beforeUnloadHandler);
+}
+
+function beforeUnloadHandler(e) {
+  if (currentStep > 0 && currentStep < TOTAL_STEPS) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+}
+window.addEventListener('beforeunload', beforeUnloadHandler);
+
+renderProgress();
+</script>
+</body>
+</html>
