@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>天満屋ストアで学ぶ 食品ロス削減 お買い物ゲーム</title>
+<style>
+  /* =========================================================
+     デザイントークン（スーパーのチラシ風・ポップな配色）
+     ========================================================= */
+  :root{
+    --cream:#FFF8EC;        /* 背景クリーム */
+    --paper:#FFFFFF;        /* カード面 */
+    --ink:#3D342E;          /* 濃い文字 */
+    --soft:#8A7C70;         /* 補助文字 */
+    --line:#EFE3D2;         /* 罫線 */
+
+    --sale:#FF5A47;         /* 値引き商品＝赤系 */
+    --sale-bg:#FFECE9;
+    --sale-dark:#D8391F;
+
+    --regular:#3FA65C;      /* 定価商品＝緑系 */
+    --regular-bg:#E9F7ED;
+    --regular-dark:#2E7D46;
+
+    --sun:#FFC24B;          /* アクセント黄 */
+    --sun-dark:#E5A121;
+    --cart:#3D8BD4;         /* かご＝青系 */
+    --cart-bg:#E8F2FB;
+
+    --radius:18px;
+    --shadow:0 8px 24px rgba(120,90,50,.14);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic UI",system-ui,sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(circle at 12% 8%, #FFF4DC 0, transparent 38%),
+      radial-gradient(circle at 88% 12%, #FFE9D8 0, transparent 40%),
+      radial-gradient(circle at 50% 100%, #EAF6E0 0, transparent 55%),
+      var(--cream);
+    min-height:100vh;
+    padding:18px 14px 60px;
+    line-height:1.6;
+  }
+  .wrap{max-width:1080px;margin:0 auto;}
+
+  /* ===== ヘッダー ===== */
+  header.title{text-align:center;margin-bottom:18px;}
+  .brand{
+    display:inline-block;background:var(--regular);color:#fff;
+    font-weight:800;font-size:.82rem;letter-spacing:.05em;
+    padding:6px 18px;border-radius:999px;box-shadow:var(--shadow);
+  }
+  h1{font-size:1.6rem;margin-top:12px;line-height:1.35;text-shadow:2px 2px 0 #fff;}
+
+  /* ===== 汎用カード ===== */
+  .card{
+    background:var(--paper);border-radius:var(--radius);
+    box-shadow:var(--shadow);border:3px solid #fff;padding:22px;
+  }
+
+  /* =========================================================
+     スタート画面
+     ========================================================= */
+  .intro-emoji{font-size:3.2rem;text-align:center;}
+  .intro h2{text-align:center;font-size:1.35rem;margin:6px 0 12px;}
+  .lead{text-align:center;color:var(--soft);font-size:1rem;margin-bottom:16px;line-height:1.8;}
+
+  .ruleblock{
+    background:var(--cream);border-radius:14px;padding:16px 18px;
+    margin:14px 0;font-size:.95rem;line-height:1.9;text-align:left;
+  }
+  .ruleblock h3{font-size:1.02rem;color:var(--regular-dark);margin-bottom:6px;}
+  .scorekey{list-style:none;display:grid;gap:8px;margin-top:8px;}
+  .scorekey li{display:flex;align-items:center;gap:10px;font-size:.92rem;}
+  .pts-badge{
+    flex:0 0 auto;min-width:52px;text-align:center;font-weight:900;
+    color:#fff;padding:3px 8px;border-radius:999px;font-size:.9rem;
+  }
+  .p10{background:var(--regular);}
+  .p5{background:var(--sun);color:#5b4300;}
+  .m5{background:#F0913E;}
+  .m10{background:var(--sale);}
+
+  .btn{
+    display:block;width:100%;max-width:360px;margin:18px auto 0;
+    border:none;cursor:pointer;font-family:inherit;
+    background:var(--regular);color:#fff;font-weight:800;font-size:1.2rem;
+    padding:16px;border-radius:16px;box-shadow:0 5px 0 var(--regular-dark);
+    transition:transform .1s ease;
+  }
+  .btn:hover{transform:translateY(-2px);}
+  .btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--regular-dark);}
+  .btn:disabled{background:#C9BBAA;box-shadow:0 5px 0 #A99C8B;cursor:not-allowed;transform:none;}
+  .btn.check{background:var(--sun);color:#5b4300;box-shadow:0 5px 0 var(--sun-dark);}
+  .btn.check:active{box-shadow:0 2px 0 var(--sun-dark);}
+
+  /* =========================================================
+     ゲーム画面 3カラムレイアウト
+     ========================================================= */
+  .game-grid{
+    display:grid;
+    grid-template-columns:260px 1fr 300px;
+    gap:16px;align-items:start;
+  }
+
+  /* --- 左：生活状況・今日の料理（スクロールしても固定表示） --- */
+  .side-left{position:sticky;top:14px;align-self:start;}
+  .panel-title{
+    font-weight:800;font-size:.95rem;letter-spacing:.04em;
+    display:flex;align-items:center;gap:6px;margin-bottom:10px;
+  }
+  .life-card{background:var(--cart-bg);border:2px solid var(--cart);border-radius:14px;padding:14px 16px;margin-bottom:14px;}
+  .life-card ul{list-style:none;font-size:.92rem;}
+  .life-card li{padding:3px 0;display:flex;gap:8px;}
+  .life-card li::before{content:"•";color:var(--cart);font-weight:900;}
+
+  /* お財布（所持金） */
+  .wallet-card{
+    background:#FFF7E4;border:2px solid var(--sun-dark);border-radius:14px;
+    padding:12px 16px;margin-bottom:14px;
+  }
+  .wallet-row{display:flex;justify-content:space-between;align-items:baseline;font-size:.9rem;padding:2px 0;}
+  .wallet-row .w-label{color:#7a5c00;font-weight:700;}
+  .wallet-row .w-val{font-weight:900;}
+  .wallet-money{font-size:1.15rem;color:#5b4300;}
+  .wallet-used{color:var(--cart);}
+  .wallet-left{border-top:2px dashed var(--sun-dark);margin-top:6px;padding-top:6px;}
+  .wallet-left .w-val{font-size:1.1rem;color:var(--regular-dark);}
+  .wallet-left.over .w-val{color:var(--sale-dark);}
+  .wallet-note{font-size:.76rem;color:var(--soft);margin-top:6px;line-height:1.5;}
+  .wallet-over-msg{
+    display:none;margin-top:8px;background:var(--sale-bg);border:1px dashed var(--sale);
+    border-radius:8px;padding:6px 8px;font-size:.78rem;color:var(--sale-dark);font-weight:700;
+  }
+
+  .dish-card{background:var(--sun);border-radius:14px;padding:14px 16px;box-shadow:0 4px 0 var(--sun-dark);}
+  .dish-card .dish-emoji{font-size:2.4rem;}
+  .dish-card .dish-name{font-weight:900;font-size:1.25rem;margin-top:2px;}
+  .dish-card .dish-note{font-size:.82rem;color:#6b4e00;margin-top:6px;line-height:1.5;}
+
+  .warn{
+    margin-top:14px;background:#FFF3F0;border:2px dashed var(--sale);
+    border-radius:12px;padding:12px;font-size:.82rem;color:var(--sale-dark);line-height:1.6;
+  }
+
+  /* --- 中央：商品一覧 --- */
+  .products{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .product{
+    position:relative;border-radius:14px;padding:14px;cursor:pointer;
+    border:3px solid var(--line);background:#fff;text-align:left;
+    font-family:inherit;transition:transform .1s, box-shadow .12s, border-color .12s;
+  }
+  .product:hover{transform:translateY(-3px);box-shadow:var(--shadow);}
+  .product:active{transform:translateY(0);}
+  .product.type-sale{border-color:var(--sale);background:var(--sale-bg);}
+  .product.type-regular{border-color:var(--regular);background:var(--regular-bg);}
+  .product .p-emoji{font-size:2.1rem;}
+  .product .p-name{font-weight:800;font-size:1rem;margin-top:2px;line-height:1.35;}
+  .product .p-amount{font-size:.82rem;color:var(--soft);margin-top:2px;}
+
+  .p-price-row{display:flex;align-items:baseline;gap:8px;margin-top:8px;flex-wrap:wrap;}
+  .p-price{font-weight:900;font-size:1.15rem;}
+  .disc-chip{
+    font-size:.78rem;font-weight:900;color:#fff;background:var(--sale);
+    padding:2px 9px;border-radius:999px;
+  }
+  .full-chip{
+    font-size:.78rem;font-weight:900;color:#fff;background:var(--regular);
+    padding:2px 9px;border-radius:999px;
+  }
+  .p-expiry{
+    display:inline-block;margin-top:8px;font-size:.82rem;font-weight:700;
+    padding:3px 10px;border-radius:8px;
+  }
+  .exp-sale{background:#FFE0DB;color:var(--sale-dark);}
+  .exp-regular{background:#DCEFE2;color:var(--regular-dark);}
+  /* 期限の残り日数バッジ（近いほど濃く） */
+  .days-badge{
+    display:inline-block;margin-top:8px;margin-left:6px;font-size:.76rem;font-weight:800;
+    padding:3px 9px;border-radius:8px;border:1px solid transparent;vertical-align:middle;
+  }
+  .days-urgent{background:#FFE0DB;color:#B02405;border-color:var(--sale);}   /* あと0〜1日 */
+  .days-soon{background:#FFEBD2;color:#C4720B;border-color:#F0A24E;}          /* あと2〜3日 */
+  .days-ok{background:#E9F7ED;color:var(--regular-dark);border-color:#A9DcB8;}/* あと4日以上 */
+
+  /* 中央：コーナー見出し（本日の特売など） */
+  .shelf-head{
+    grid-column:1 / -1;display:flex;align-items:center;gap:8px;
+    font-weight:900;font-size:.92rem;margin:6px 2px 0;padding-bottom:6px;
+    border-bottom:2px dashed var(--line);
+  }
+  .shelf-head.sale-shelf{color:var(--sale-dark);border-bottom-color:var(--sale);}
+  .shelf-head .shelf-tag{
+    font-size:.72rem;font-weight:900;color:#fff;background:var(--sale);
+    padding:2px 10px;border-radius:999px;
+  }
+  .shelf-note{
+    grid-column:1 / -1;font-size:.78rem;color:var(--soft);margin:-2px 2px 2px;line-height:1.5;
+  }
+
+  .in-cart-flag{
+    position:absolute;top:8px;right:8px;background:var(--cart);color:#fff;
+    font-size:.72rem;font-weight:800;padding:2px 8px;border-radius:999px;display:none;
+  }
+  .product.selected .in-cart-flag{display:block;}
+  .product.selected{outline:3px solid var(--cart);outline-offset:1px;}
+
+  /* --- 右：買い物かご --- */
+  .cart-panel{position:sticky;top:14px;}
+  .cart-box{background:var(--cart-bg);border:2px solid var(--cart);border-radius:14px;padding:14px;min-height:120px;}
+  .cart-empty{color:var(--cart);font-size:.9rem;text-align:center;padding:20px 6px;}
+  .cart-item{
+    background:#fff;border-radius:10px;padding:8px 10px;margin-bottom:8px;
+    display:flex;align-items:center;gap:8px;font-size:.86rem;box-shadow:0 2px 6px rgba(0,0,0,.05);
+  }
+  .cart-item .ci-emoji{font-size:1.3rem;}
+  .cart-item .ci-name{flex:1;font-weight:700;line-height:1.3;}
+  .cart-item .ci-price{font-weight:800;font-size:.82rem;color:var(--soft);}
+  .ci-remove{
+    border:none;background:var(--sale);color:#fff;cursor:pointer;
+    width:24px;height:24px;border-radius:8px;font-weight:900;font-size:1rem;line-height:1;
+    flex:0 0 auto;
+  }
+  .ci-remove:hover{background:var(--sale-dark);}
+  .cart-total{display:flex;justify-content:space-between;font-weight:800;margin-top:12px;padding-top:10px;border-top:2px dashed var(--cart);}
+
+  /* =========================================================
+     結果画面
+     ========================================================= */
+  .result-emoji{font-size:4rem;text-align:center;}
+  .final-score{text-align:center;font-size:3rem;font-weight:900;color:var(--regular-dark);margin:6px 0;}
+  .final-score small{font-size:1.2rem;color:var(--soft);}
+  .rank-title{text-align:center;font-size:1.4rem;font-weight:900;margin:6px 0;}
+  .rank-comment{text-align:center;color:var(--soft);font-size:1rem;margin-bottom:8px;line-height:1.8;}
+
+  .eval-list{display:grid;gap:10px;margin-top:18px;}
+  .eval-item{border-radius:12px;padding:12px 14px;border-left:6px solid var(--line);background:var(--cream);}
+  .eval-head{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+  .eval-name{font-weight:800;}
+  .eval-pts{font-weight:900;font-size:1.05rem;flex:0 0 auto;}
+  .eval-reason{font-size:.9rem;color:var(--ink);margin-top:5px;line-height:1.6;}
+  .ev-p10{border-left-color:var(--regular);} .ev-p10 .eval-pts{color:var(--regular-dark);}
+  .ev-p5{border-left-color:var(--sun-dark);} .ev-p5 .eval-pts{color:var(--sun-dark);}
+  .ev-m5{border-left-color:#F0913E;} .ev-m5 .eval-pts{color:#D97812;}
+  .ev-m10{border-left-color:var(--sale);} .ev-m10 .eval-pts{color:var(--sale-dark);}
+  .ev-miss{border-left-color:var(--soft);} .ev-miss .eval-pts{color:var(--soft);}
+
+  .replay-note{text-align:center;color:var(--soft);font-size:.9rem;margin-top:20px;background:var(--cream);padding:12px;border-radius:12px;}
+
+  /* 事前ゲーム用の簡易終了画面（得点・理由は見せない） */
+  .pre-thanks{text-align:center;padding:36px 14px;}
+  .pre-thanks .big-emoji{font-size:3.2rem;}
+  .pre-thanks h2{font-size:1.3rem;margin:10px 0 8px;color:var(--regular-dark);}
+  .pre-thanks p{color:var(--soft);font-size:.95rem;line-height:1.8;}
+
+  /* カレー完成判定ボックス（事前・事後共通） */
+  .completion-box{
+    text-align:left;border-radius:14px;padding:14px 16px;margin:14px 0;
+    font-size:.95rem;line-height:1.7;font-weight:700;
+  }
+  .completion-ok{background:var(--regular-bg);border:2px solid var(--regular);color:var(--regular-dark);}
+  .completion-ng{background:var(--sale-bg);border:2px solid var(--sale);color:var(--sale-dark);}
+  .completion-box .c-sub{display:block;margin-top:6px;font-size:.85rem;font-weight:500;color:var(--ink);}
+
+  footer{margin-top:24px;text-align:center;font-size:.78rem;color:var(--soft);}
+  .hidden{display:none;}
+
+  /* =========================================================
+     レスポンシブ（タブレット・スマホ）
+     ========================================================= */
+  @media(max-width:900px){
+    .game-grid{grid-template-columns:1fr;}
+    .cart-panel{position:static;}
+    .side-left{position:static;}
+  }
+  @media(max-width:560px){
+    h1{font-size:1.3rem;}
+    .card{padding:16px;}
+    .products{grid-template-columns:1fr 1fr;}
+    .final-score{font-size:2.4rem;}
+  }
+  @media(max-width:380px){
+    .products{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="title">
+    <span class="brand">🏪 天満屋ストア × 食品ロス削減</span>
+    <h1>🛒 かしこいお買い物ゲーム</h1>
+  </header>
+
+  <!-- =========================================================
+       スタート画面
+       ========================================================= -->
+  <section id="startScreen" class="card intro">
+    <div class="intro-emoji">🥬🍖🧅</div>
+    <h2>今日の料理をつくるために買い物をしよう</h2>
+    <p class="lead">
+      あなたは天満屋ストアの買い物客。<br>
+      画面に出る<b>生活状況</b>と<b>今日つくる料理</b>を見て、<br>
+      必要だと思う商品をカゴに入れ、レジへ進んでください。
+    </p>
+
+    <div class="ruleblock">
+      <h3>📖 遊び方</h3>
+      ・左の「生活状況」と「今日つくる料理」をよく読みます。<br>
+      ・中央の商品カードをタップするとカゴに入り、カゴの✕で戻せます。<br>
+      ・カゴが決まったら「レジで会計する」を押すと結果が出ます。
+    </div>
+
+    <div class="ruleblock">
+      <h3>🍳 買い物の前提</h3>
+      今回つくるのは<b>カレー1食ぶん（今日の夕食で食べ切る）</b>です。<br>
+      この1食で使い切る材料をそろえるのが目的で、
+      「別の料理にも使う」「後日のために取っておく」といった予定は今回は考えません。<br>
+      所持金は<b>¥1,200で固定</b>です。全員が同じ条件で選べるように、金額を自分で変えることはできません。<br>
+      この範囲内で、<b>食べ切れる量・使い切れる期限</b>かどうかを考えて選びましょう。<br>
+      <span style="font-size:.85rem;color:var(--soft)">
+        ※みんなが同じ条件で採点されるようにするための決まりです。
+      </span>
+    </div>
+
+    <button class="btn" onclick="startGame()">お買い物スタート！ 🌱</button>
+  </section>
+
+  <!-- =========================================================
+       ゲーム画面
+       ========================================================= -->
+  <section id="gameScreen" class="hidden">
+    <div class="game-grid">
+
+      <!-- 左：生活状況・料理（スクロールしても固定） -->
+      <aside class="card side-left">
+        <div class="panel-title">🧑 あなたの生活状況</div>
+        <div class="life-card">
+          <ul id="lifeList"></ul>
+        </div>
+
+        <div class="panel-title">👛 お財布</div>
+        <div class="wallet-card">
+          <div class="wallet-row">
+            <span class="w-label">所持金</span>
+            <span class="w-val wallet-money" id="walletMoney">¥0</span>
+          </div>
+          <div class="wallet-row">
+            <span class="w-label">カゴの合計</span>
+            <span class="w-val wallet-used" id="walletUsed">¥0</span>
+          </div>
+          <div class="wallet-row wallet-left" id="walletLeftRow">
+            <span class="w-label">残り</span>
+            <span class="w-val" id="walletLeft">¥0</span>
+          </div>
+          <div class="wallet-over-msg" id="walletOverMsg">⚠️ 所持金が足りません。買う量を見直そう。</div>
+          <div class="wallet-note">
+            予算内でも、食べ切れなければ食品ロスに。<br>「安いから」ではなく「使い切れるか」で選ぼう。
+          </div>
+        </div>
+
+        <div class="panel-title">🍳 今回つくる料理</div>
+        <div class="dish-card">
+          <span class="dish-emoji" id="dishEmoji"></span>
+          <div class="dish-name" id="dishName"></div>
+          <div class="dish-note" id="dishNote"></div>
+        </div>
+
+        <div class="warn">
+          🍳 今回そろえるのは<b>カレー1食ぶん（今日食べ切る）</b>の材料です。<br>
+          それ以外の日や料理の予定は、今回は考えません。
+        </div>
+      </aside>
+
+      <!-- 中央：商品一覧 -->
+      <main class="card">
+        <div class="panel-title">🏷️ 商品一覧（タップでカゴへ）</div>
+        <p style="font-size:.8rem;color:var(--soft);margin:-4px 0 12px;line-height:1.5">
+          「あと○日」は期限までの残り日数です。日数が少ない商品は早く食べ切る必要があります。
+        </p>
+        <div class="products" id="productList"></div>
+      </main>
+
+      <!-- 右：買い物かご -->
+      <aside class="card cart-panel">
+        <div class="panel-title">🧺 買い物かご</div>
+        <div class="cart-box">
+          <div id="cartItems"></div>
+          <div class="cart-total">
+            <span>合計</span>
+            <span id="cartTotal">¥0</span>
+          </div>
+        </div>
+        <button class="btn check" id="checkoutBtn" onclick="checkout()" disabled>レジで会計する 🧾</button>
+        <p style="text-align:center;font-size:.78rem;color:var(--soft);margin-top:8px">
+          カゴに入れてから会計してね
+        </p>
+      </aside>
+
+    </div>
+  </section>
+
+  <!-- =========================================================
+       結果画面（事後ゲーム、または step 指定なしのテスト時に表示）
+       ========================================================= -->
+  <section id="resultScreen" class="card hidden">
+    <div class="result-emoji" id="resultEmoji">🎉</div>
+
+    <div id="resultCompletionBox"></div>
+
+    <div class="final-score" id="finalScore">0<small> 点</small></div>
+    <div class="rank-title" id="rankTitle"></div>
+    <p class="rank-comment" id="rankComment"></p>
+
+    <div class="panel-title" style="margin-top:18px">🔍 商品ごとの評価</div>
+    <div class="eval-list" id="evalList"></div>
+
+  </section>
+
+  <!-- =========================================================
+       事前ゲーム用の簡易終了画面（得点・理由は表示しない）
+       ※ 動画を見る前に「正解」を教えてしまうと、動画そのものの
+         効果が測れなくなるため、事前ゲームでは得点・商品ごとの評価は
+         伏せています。ただし「カレーが完成できたかどうか」は、
+         見切り品を選んだかどうかとは関係のない情報なので、
+         事前・事後どちらでも表示します。
+       ========================================================= -->
+  <section id="preThanksScreen" class="card hidden">
+    <div class="pre-thanks">
+      <div class="big-emoji">🌱</div>
+      <h2>ご協力ありがとうございました！</h2>
+
+      <div id="preCompletionBox"></div>
+
+      <p>お買い物、お疲れさまでした。<br>上の「次へ」ボタンを押して、次のステップに進んでください。</p>
+    </div>
+  </section>
+
+  <footer>教育用コンテンツ / テーマ：天満屋ストアでの食品ロス削減</footer>
+</div>
+
+<script>
+/* =========================================================
+   URLパラメータ（index.html から ?id=...&step=pre / post で
+   埋め込まれる想定。step=pre のときは採点結果を表示しない）
+   ========================================================= */
+const urlParams = new URLSearchParams(window.location.search);
+const gameStep = urlParams.get("step"); // "pre" | "post" | null
+const participantId = urlParams.get("id") || ""; // index.htmlから渡される回答者ID
+
+/* index.html と同じ GAS Web App URL（ゲーム結果の記録に使う） */
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwhJedCNcuFL-JDlfJKqjUDp3eR-5QGudp-zPc9Jwf9AXjBlFFI-RB2wCjLvpRXwec/exec';
+
+/* =========================================================
+   シナリオ（生活状況・料理）
+   ========================================================= */
+const SCENARIO = {
+  money: 1200,               // 所持金（固定・自分では変更不可）
+  life:[
+    "一人暮らし",
+    "今日の夕食で食べる",
+    "カレーを1食ぶん作って、その日のうちに食べ切る予定"
+  ],
+  dish:{
+    emoji:"🍛",
+    name:"カレーライス（1食ぶん）",
+    note:"1食で食べ切る量の目安：豚肉100g／玉ねぎ1個／にんじん1本／じゃがいも1個／カレールー1皿分／ごはん1食／サラダ油・福神漬け 少々。今日の夕食で食べ切ります。"
+  }
+};
+
+/* =========================================================
+   商品データ
+   -----------------------------------------------------------
+   type       : "sale"（値引き＝赤） / "regular"（定価＝緑）
+   daysLeft   : 賞味/消費期限までの残り日数（「あと○日」で表示）
+   expiryKind : "消費期限" / "賞味期限"
+   shelf      : "sale" を付けると「本日の特売コーナー」に並ぶ
+                （安さや「なんとなく合いそう」で買ってしまいがちな、
+                  今回のレシピには不要な商品）
+   points     : カゴに入れたときの点数（＋加点/−減点）
+   reason     : 採点理由（事後の結果画面でのみ表示。事前ゲームでは非表示）
+   -----------------------------------------------------------
+   豚肉・玉ねぎ・にんじん・じゃがいもは、あえて「必要な量は
+   どちらも同じ」にしてあります。違うのは「値段」と「期限までの
+   日数」だけ。→ 量の正解を教えず、「見切り品（安い・期限が近い）
+   を選べるかどうか」という判断だけを測れるようにするための設計です。
+   ========================================================= */
+const PRODUCTS = [
+  /* ===== 豚肉（同じ200g／見切り品か定価品か） ===== */
+  {
+    id:"pork-a", emoji:"🥩", name:"豚こま肉 100g", amount:"内容量：100g",
+    price:129, type:"sale", disc:"30%オフ", expiryKind:"消費期限", daysLeft:1,
+    points:10,
+    reason:"カレー1食ぶんに必要な100gぴったり。今日中に調理してしまうので、期限が近い値引き品でも問題なくおいしく食べられます。値引き品を選ぶことは、お店の売れ残り防止にもつながります。"
+  },
+  {
+    id:"pork-b", emoji:"🥩", name:"豚こま肉 100g", amount:"内容量：100g",
+    price:159, type:"regular", disc:"定価", expiryKind:"消費期限", daysLeft:6,
+    points:5,
+    reason:"必要な100gは確保できていて、こちらもムダにはなりません。ただし、期限に余裕のある定価品を選んだので、店頭で売れ残りやすい期限の近い商品を助ける機会は活かせていません。"
+  },
+
+  /* ===== 玉ねぎ（同じ1個／見切り品か定価品か） ===== */
+  {
+    id:"onion-a", emoji:"🧅", name:"玉ねぎ 1個", amount:"内容量：1個",
+    price:55, type:"sale", disc:"20%オフ", expiryKind:"消費期限", daysLeft:1,
+    points:10,
+    reason:"カレー1食ぶんに必要な1個ぴったり。今日中に使い切るので、期限が近い値引き品でもムダなく選べています。"
+  },
+  {
+    id:"onion-b", emoji:"🧅", name:"玉ねぎ 1個", amount:"内容量：1個",
+    price:68, type:"regular", disc:"定価", expiryKind:"消費期限", daysLeft:10,
+    points:5,
+    reason:"必要な1個は確保できていますが、期限に余裕のある定価品を選んだため、店頭の見切り品を消費する機会は活かせていません。"
+  },
+
+  /* ===== にんじん（同じ1本／見切り品か定価品か） ===== */
+  {
+    id:"carrot-a", emoji:"🥕", name:"にんじん 1本（バラ売り）", amount:"内容量：1本",
+    price:38, type:"sale", disc:"10%オフ", expiryKind:"消費期限", daysLeft:1,
+    points:10,
+    reason:"必要な1本ぴったり。今日中に使い切るので、期限が近い値引き品でも問題なく、お店の廃棄予防にも協力できています。"
+  },
+  {
+    id:"carrot-b", emoji:"🥕", name:"にんじん 1本（バラ売り）", amount:"内容量：1本",
+    price:45, type:"regular", disc:"定価", expiryKind:"消費期限", daysLeft:8,
+    points:5,
+    reason:"必要な1本は確保できていますが、期限に余裕のある定価品を選んだため、見切り品を助ける機会は活かせていません。"
+  },
+
+  /* ===== じゃがいも（同じ1個／見切り品か定価品か） ===== */
+  {
+    id:"potato-a", emoji:"🥔", name:"じゃがいも 1個（バラ売り）", amount:"内容量：1個",
+    price:32, type:"sale", disc:"15%オフ", expiryKind:"消費期限", daysLeft:1,
+    points:10,
+    reason:"必要な1個ぴったり。今日中に調理してしまうので、期限が近い値引き品でも問題なくおいしく食べられます。値引き品を選ぶことは、お店の売れ残り防止にもつながります。"
+  },
+  {
+    id:"potato-b", emoji:"🥔", name:"じゃがいも 1個（バラ売り）", amount:"内容量：1個",
+    price:38, type:"regular", disc:"定価", expiryKind:"消費期限", daysLeft:9,
+    points:5,
+    reason:"必要な1個は確保できていますが、期限に余裕のある定価品を選んだため、見切り品を助ける機会は活かせていません。"
+  },
+
+  /* ===== カレールー（賞味期限が長く、見切り品の対象になりにくいため単一） ===== */
+  {
+    id:"roux", emoji:"🍛", name:"カレールー 小箱（1皿分）", amount:"内容量：1皿分",
+    price:68, type:"regular", disc:"定価", expiryKind:"賞味期限", daysLeft:365,
+    points:10,
+    reason:"カレー1食ぶんに必要な量ぴったり。賞味期限も長く、ムダのない選択です。"
+  },
+
+  /* ===== お米（同上の理由で単一） ===== */
+  {
+    id:"rice", emoji:"🍚", name:"パックごはん 1食入り", amount:"内容量：1食",
+    price:128, type:"regular", disc:"定価", expiryKind:"賞味期限", daysLeft:180,
+    points:10,
+    reason:"必要な1食ぶんぴったり。長期保存もできるので、余ってもムダになりません。"
+  },
+
+  /* ===== サラダ油（同上の理由で単一） ===== */
+  {
+    id:"oil", emoji:"🫗", name:"サラダ油 小サイズ", amount:"内容量：200g",
+    price:158, type:"regular", disc:"定価", expiryKind:"賞味期限", daysLeft:365,
+    points:10,
+    reason:"肉と野菜を炒めるのに必要。日持ちして使い回せる小サイズを選べており、ムダのない買い方です。"
+  },
+
+  /* ===== 福神漬け（同上の理由で単一） ===== */
+  {
+    id:"fukujin", emoji:"🥢", name:"福神漬け 1袋", amount:"内容量：1袋",
+    price:98, type:"regular", disc:"定価", expiryKind:"賞味期限", daysLeft:90,
+    points:10,
+    reason:"カレーの定番の付け合わせ。日持ちもし、1食ぶんで使い切れる量なので、ロスなく楽しめます。"
+  },
+
+  /* ===== 本日の特売コーナー（カレーとは無関係の「その日のお買い得品」） ===== */
+  {
+    id:"cutveg", emoji:"🥗", name:"炒め用カット野菜", amount:"内容量：200g（もやし・キャベツ・ピーマン入り）",
+    price:128, type:"sale", disc:"20%オフ", expiryKind:"消費期限", daysLeft:1, shelf:"sale",
+    points:-5,
+    reason:"もやしやキャベツが中心で、カレーの具（玉ねぎ・にんじん・じゃがいも）の代わりにはなりません。今日のカレーには使えず、余って食品ロスになりがちです。"
+  },
+  {
+    id:"ginger", emoji:"🫚", name:"しょうが（ひとかけ）", amount:"内容量：1かけ",
+    price:58, type:"sale", disc:"20%オフ", expiryKind:"消費期限", daysLeft:1, shelf:"sale",
+    points:-5,
+    reason:"しょうがはカレーに加える人もいますが、今回の1食ぶんのレシピには入っていません。「カレーに合いそうだから」で買い足すと、使い切れずに余らせてしまうことがあります。"
+  }
+];
+
+/* 最適な買い物 = 豚肉・玉ねぎ・にんじん・じゃがいもは見切り品（-a）を選び、
+   カレールー・ごはん・サラダ油・福神漬けを1つずつ
+   → +10 が8品で合計80点（食品ロスマスター）になるよう設計。
+   定価品（-b）を選んだ場合は+5点なので、合計60点（上手に買い物できた）になる。 */
+
+/* =========================================================
+   状態
+   ========================================================= */
+let cart = [];   // カゴに入った商品のidリスト
+
+/* ---- 画面切り替え ---- */
+function show(id){ document.getElementById(id).classList.remove("hidden"); }
+function hide(id){ document.getElementById(id).classList.add("hidden"); }
+
+/* ---- ゲーム開始 ---- */
+function startGame(){
+  cart = [];
+  hide("startScreen");
+  show("gameScreen");
+  renderScenario();
+  renderProducts();
+  renderCart();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+/* ---- 左パネル（生活状況・料理・所持金）を描画 ---- */
+function renderScenario(){
+  const list = document.getElementById("lifeList");
+  list.innerHTML = SCENARIO.life.map(t=>`<li>${t}</li>`).join("");
+  document.getElementById("dishEmoji").textContent = SCENARIO.dish.emoji;
+  document.getElementById("dishName").textContent  = SCENARIO.dish.name;
+  document.getElementById("dishNote").textContent  = SCENARIO.dish.note;
+  document.getElementById("walletMoney").textContent = "¥" + SCENARIO.money.toLocaleString();
+}
+
+/* ---- 期限の「あと○日」表示を組み立てる ---- */
+function expiryLabel(p){
+  const d = p.daysLeft;
+  let txt;
+  if(d <= 0)      txt = "今日中";
+  else if(d === 1) txt = "明日まで";
+  else if(d >= 90) txt = "あと90日以上"; // ルー・米・油など長期保存品はまとめて表記
+  else            txt = "あと" + d + "日";
+  return `${p.expiryKind}：${txt}`;
+}
+
+/* ---- 残り日数バッジのクラスを決める（近いほど濃い） ---- */
+function daysBadgeClass(d){
+  if(d <= 1) return "days-urgent";
+  if(d <= 3) return "days-soon";
+  return "days-ok";
+}
+
+/* ---- 商品カード1枚ぶんのHTMLを生成 ---- */
+function productCard(p){
+  const inCart = cart.includes(p.id);
+  const chip = p.type === "sale"
+    ? `<span class="disc-chip">${p.disc}</span>`
+    : `<span class="full-chip">${p.disc}</span>`;
+  const expClass  = p.type === "sale" ? "exp-sale" : "exp-regular";
+  const daysClass = daysBadgeClass(p.daysLeft);
+  const daysTxt   = p.daysLeft <= 0 ? "今日中"
+                    : p.daysLeft === 1 ? "明日まで"
+                    : p.daysLeft >= 90 ? "日持ち"
+                    : "あと" + p.daysLeft + "日";
+  return `
+    <button class="product type-${p.type}${inCart ? " selected" : ""}" data-id="${p.id}">
+      <span class="in-cart-flag">カゴIN ✓</span>
+      <span class="p-emoji">${p.emoji}</span>
+      <div class="p-name">${p.name}</div>
+      <div class="p-amount">${p.amount}</div>
+      <div class="p-price-row">
+        <span class="p-price">¥${p.price}</span>
+        ${chip}
+      </div>
+      <span class="p-expiry ${expClass}">${expiryLabel(p)}</span>
+      <span class="days-badge ${daysClass}">🗓 ${daysTxt}</span>
+    </button>`;
+}
+
+/* ---- 商品一覧を描画（通常棚＋本日の特売コーナー） ---- */
+function renderProducts(){
+  const box = document.getElementById("productList");
+  const normal = PRODUCTS.filter(p=>p.shelf !== "sale");
+  const sale   = PRODUCTS.filter(p=>p.shelf === "sale");
+
+  let html = normal.map(productCard).join("");
+
+  if(sale.length){
+    html += `
+      <div class="shelf-head sale-shelf">
+        <span class="shelf-tag">本日の特売</span>🔥 お得だけど、本当に必要？
+      </div>
+      <div class="shelf-note">
+        安さや「なんとなく合いそう」に惹かれても、今回の1食ぶんのレシピに本当に必要かどうかで選びましょう。
+      </div>`;
+    html += sale.map(productCard).join("");
+  }
+
+  box.innerHTML = html;
+  box.querySelectorAll(".product").forEach(btn=>{
+    btn.onclick = ()=>toggleCart(btn.dataset.id);
+  });
+}
+
+/* ---- カゴへ追加／削除（トグル） ---- */
+function toggleCart(id){
+  if(cart.includes(id)){
+    cart = cart.filter(x=>x!==id);
+  }else{
+    cart.push(id);
+  }
+  renderProducts();
+  renderCart();
+}
+
+/* ---- カゴから削除（✕ボタン用） ---- */
+function removeFromCart(id){
+  cart = cart.filter(x=>x!==id);
+  renderProducts();
+  renderCart();
+}
+
+/* ---- 買い物かごを描画 ---- */
+function renderCart(){
+  const box = document.getElementById("cartItems");
+  const totalEl = document.getElementById("cartTotal");
+  const checkoutBtn = document.getElementById("checkoutBtn");
+
+  let total = 0;
+  if(cart.length === 0){
+    box.innerHTML = `<div class="cart-empty">まだ何も入っていません。<br>気になる商品をタップ！</div>`;
+    totalEl.textContent = "¥0";
+    checkoutBtn.disabled = true;
+  }else{
+    box.innerHTML = "";
+    cart.forEach(id=>{
+      const p = PRODUCTS.find(x=>x.id===id);
+      total += p.price;
+      const row = document.createElement("div");
+      row.className = "cart-item";
+      row.innerHTML = `
+        <span class="ci-emoji">${p.emoji}</span>
+        <span class="ci-name">${p.name}</span>
+        <span class="ci-price">¥${p.price}</span>
+        <button class="ci-remove" title="削除" onclick="removeFromCart('${p.id}')">✕</button>
+      `;
+      box.appendChild(row);
+    });
+    totalEl.textContent = "¥" + total;
+    checkoutBtn.disabled = false;
+  }
+
+  updateWallet(total);
+}
+
+/* ---- お財布（所持金・残り）の表示を更新（採点には一切影響しない） ---- */
+function updateWallet(total){
+  const left = SCENARIO.money - total;
+  document.getElementById("walletUsed").textContent = "¥" + total.toLocaleString();
+  const leftRow = document.getElementById("walletLeftRow");
+  const leftEl  = document.getElementById("walletLeft");
+  leftEl.textContent = "¥" + left.toLocaleString();
+  leftRow.classList.toggle("over", left < 0);
+  document.getElementById("walletOverMsg").style.display = left < 0 ? "block" : "none";
+}
+
+/* =========================================================
+   「カレーが完成できるか」の判定
+   -----------------------------------------------------------
+   見切り品（-a）か定価品（-b）かは問わず、各食材カテゴリーが
+   1つでもカゴに入っていれば、そのカテゴリーは満たされたとみなす。
+   （見切り品を選んだかどうかで完成の可否は変わらないため、
+     動画の効果測定に影響を与えず、事前・事後どちらで見せても
+     問題のない情報として扱っている）
+   ========================================================= */
+const REQUIRED_GROUPS = [
+  { name:"お肉",       ids:["pork-a","pork-b"] },
+  { name:"玉ねぎ",     ids:["onion-a","onion-b"] },
+  { name:"にんじん",   ids:["carrot-a","carrot-b"] },
+  { name:"じゃがいも", ids:["potato-a","potato-b"] },
+  { name:"カレールー", ids:["roux"] },
+  { name:"ごはん",     ids:["rice"] },
+  { name:"サラダ油",   ids:["oil"] }
+];
+
+function checkCompletion(){
+  const missing = [];
+  REQUIRED_GROUPS.forEach(g=>{
+    const has = g.ids.some(id=>cart.includes(id));
+    if(!has) missing.push(g.name);
+  });
+  return { cleared: missing.length === 0, missing: missing };
+}
+
+/* ---- カレー完成判定ボックスを描画（事前・事後で共通利用） ---- */
+function renderCompletion(boxId, completion){
+  const box = document.getElementById(boxId);
+  if(!box) return;
+
+  if(completion.cleared){
+    box.innerHTML = `
+      <div class="completion-box completion-ok">
+        🍛 カレーは完成できました！
+        <span class="c-sub">必要な材料がそろったので、今日の夕食を作ることができます。</span>
+      </div>`;
+  }else{
+    box.innerHTML = `
+      <div class="completion-box completion-ng">
+        🍛 カレーは完成できませんでした…
+        <span class="c-sub">足りない材料：${completion.missing.join("、")}</span>
+      </div>`;
+  }
+}
+
+/* =========================================================
+   会計（採点）
+   総合点 = カゴに入れた商品の points の単純合計のみ。
+   （ボーナス・残金加点などは一切なし）
+
+   事前ゲーム（?step=pre）では、得点・商品ごとの評価（理由）は
+   参加者には見せません。動画を見る前に「正解」を教えてしまうと、
+   動画そのものの効果が測れなくなるためです。
+   ただし「カレーが完成できたかどうか」は見切り品を選んだかどうか
+   とは無関係の情報なので、事前・事後のどちらでも表示します。
+   事後ゲーム、またはstep指定なし（単体テスト時）では、
+   今まで通り得点と理由も表示します。
+   ========================================================= */
+function checkout(){
+  // 各商品の点数を単純合計（表示するかどうかに関わらず必ず計算する）
+  let total = 0;
+  cart.forEach(id=>{
+    const p = PRODUCTS.find(x=>x.id===id);
+    total += p.points;
+  });
+
+  const completion = checkCompletion();
+
+  sendGameResult(total, completion); // pre/postどちらでも、スプレッドシートに記録する
+
+  if(gameStep === "pre"){
+    hide("gameScreen");
+    show("preThanksScreen");
+    renderCompletion("preCompletionBox", completion);
+    window.scrollTo({top:0,behavior:"smooth"});
+  }else{
+    showResult(total, completion);
+  }
+}
+
+/* =========================================================
+   ゲーム結果をスプレッドシート（「ゲーム結果」シート）へ記録する。
+   index.html と同じ参加者ID・GAS_URLを使うので、アンケートの
+   回答と同じIDで紐づけて集計できる。
+   通信に失敗しても、参加者の操作（結果表示や次へ進むこと）は
+   止めないようにしている。
+   ========================================================= */
+function sendGameResult(total, completion){
+  if(!participantId) return; // idが無い単体テスト時などは送信しない
+
+  const spent = cart.reduce((sum, id)=>{
+    const p = PRODUCTS.find(x=>x.id===id);
+    return sum + (p ? p.price : 0);
+  }, 0);
+  const remaining = SCENARIO.money - spent;
+
+  // 見切り品（-a）／定価品（-b）／不要な商品（特売コーナー）の購入数
+  const saleCount    = cart.filter(id=>id.endsWith("-a")).length;
+  const regularCount = cart.filter(id=>id.endsWith("-b")).length;
+  const decoyCount   = cart.filter(id=>{
+    const p = PRODUCTS.find(x=>x.id===id);
+    return p && p.shelf === "sale";
+  }).length;
+
+  const items = cart.map(id=>{
+    const p = PRODUCTS.find(x=>x.id===id);
+    return p ? p.name : id;
+  }).join("、");
+  const itemIds = cart.join(",");
+
+  fetch(GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({
+      action: "logGame",
+      id: participantId,
+      step: gameStep || "test",
+      score: total,
+      detail: {
+        money: SCENARIO.money,
+        spent: spent,
+        remaining: remaining,
+        cleared: remaining >= 0,
+        curryCompletable: completion ? completion.cleared : null,
+        missingIngredients: completion ? completion.missing.join("、") : "",
+        saleCount: saleCount,
+        regularCount: regularCount,
+        decoyCount: decoyCount,
+        items: items,
+        itemIds: itemIds
+      }
+    })
+  }).catch(function(){
+    // 通信に失敗しても画面はそのまま進める（記録できないだけ）
+  });
+}
+
+/* ---- 結果画面を描画（事後ゲーム用） ---- */
+function showResult(total, completion){
+  hide("gameScreen");
+  show("resultScreen");
+
+  if(completion){
+    renderCompletion("resultCompletionBox", completion);
+  }
+
+  document.getElementById("finalScore").innerHTML = total + '<small> 点</small>';
+
+  // 総合評価
+  let emoji, title, comment;
+  if(total >= 80){
+    emoji="🏆"; title="食品ロスマスター！";
+    comment="必要な量を、必要なだけ。ムダのないお買い物ができました。";
+  }else if(total >= 50){
+    emoji="😊"; title="上手に買い物できた！";
+    comment="いい選択です。あと少し「見切り品を選べるか」を意識すると満点も見えてきます。";
+  }else if(total >= 0){
+    emoji="🤔"; title="もう少し改善できそう";
+    comment="料理に必要な量を考えて、余分な商品を減らしてみましょう。";
+  }else{
+    emoji="😵"; title="食品ロス予備軍…";
+    comment="安さや期限だけで選ぶと食べ切れず廃棄に。まず「今日の料理に必要か」を考えてみて。";
+  }
+  document.getElementById("resultEmoji").textContent = emoji;
+  document.getElementById("rankTitle").textContent = title;
+  document.getElementById("rankComment").textContent = comment;
+
+  // 商品ごとの評価（理由つき）
+  const list = document.getElementById("evalList");
+  list.innerHTML = "";
+
+  if(cart.length === 0){
+    // 何も買わなかった場合
+    const div = document.createElement("div");
+    div.className = "eval-item ev-miss";
+    div.innerHTML = `
+      <div class="eval-head"><span class="eval-name">カゴが空でした</span><span class="eval-pts">0点</span></div>
+      <div class="eval-reason">何も買わなければロスは出ませんが、料理は作れません。次は必要な食材を選んでみましょう。</div>`;
+    list.appendChild(div);
+  }else{
+    cart.forEach(id=>{
+      const p = PRODUCTS.find(x=>x.id===id);
+      const sign = p.points > 0 ? "+" : "";
+      let cls;
+      if(p.points >= 10) cls="ev-p10";
+      else if(p.points >= 5) cls="ev-p5";
+      else if(p.points >= -5) cls="ev-m5";
+      else cls="ev-m10";
+
+      const div = document.createElement("div");
+      div.className = "eval-item " + cls;
+      div.innerHTML = `
+        <div class="eval-head">
+          <span class="eval-name">${p.emoji} ${p.name}</span>
+          <span class="eval-pts">${sign}${p.points}点</span>
+        </div>
+        <div class="eval-reason">${p.reason}</div>`;
+      list.appendChild(div);
+    });
+  }
+
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+</script>
+</body>
+</html>
